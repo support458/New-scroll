@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Science Action - Correct Timing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --orange: #eb5745;
+            --bezier: cubic-bezier(0.2, 1, 0.3, 1);
+        }
+
+        /* Установлен шрифт 14pt */
+        html { font-size: 14pt; } 
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #fff;
+            /* Высота: Hero + Блок + Трансформация + Буфер + Контент */
+            height: 800vh; 
+        }
+
+        /* --- 1. HERO --- */
+        .hero {
+            width: 100%;
+            height: 100vh;
+            background: #1a1a1a url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2000') center/cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+        .hero h1 { font-size: 2.8rem; font-weight: 900; line-height: 1.1; margin-bottom: 1rem; }
+
+        /* --- 2. ОРАНЖЕВЫЙ БЛОК (STICKY) --- */
+        .sticky-zone {
+            height: 300vh; /* Пространство для фиксации и трансформации */
+            position: relative;
+            z-index: 1000;
+        }
+
+        #menu {
+            position: sticky;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--orange);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem 1.5rem;
+            /* Плавный переход для всех свойств */
+            transition: 
+                width 0.6s var(--bezier), 
+                height 0.6s var(--bezier), 
+                border-radius 0.6s var(--bezier),
+                left 0.6s var(--bezier),
+                bottom 0.6s var(--bezier);
+            overflow: hidden;
+            will-change: width, height, border-radius, top;
+        }
+
+        /* Режим кнопки (FAB) */
+        #menu.is-fab {
+            position: fixed; /* Переключаем на fixed, чтобы кнопка "плавала" при скролле контента */
+            top: auto !important;
+            bottom: 30px;
+            left: 20px;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            padding: 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+
+        /* Развернутое меню */
+        #menu.is-expanded {
+            position: fixed;
+            top: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            border-radius: 0 !important;
+            padding: 2.5rem 1.5rem;
+            z-index: 2000;
+        }
+
+        .menu-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: opacity 0.3s;
+        }
+
+        .is-fab .menu-content { opacity: 0; pointer-events: none; }
+
+        .fab-icon {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px; opacity: 0;
+        }
+        .is-fab .fab-icon { opacity: 1; }
+
+        .menu-title { font-size: 2.4rem; font-weight: 900; line-height: 1.1; margin: 1rem 0; }
+        .pill { display: inline-block; padding: 0.6rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; background: rgba(0,0,0,0.1); margin-right: 5px; margin-top: 10px;}
+        .pill.active { background: white; color: var(--orange); }
+
+        .close-btn {
+            width: 56px; height: 56px; border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 28px; cursor: pointer; visibility: hidden;
+            margin-bottom: env(safe-area-inset-bottom);
+        }
+        .is-expanded .close-btn { visibility: visible; }
+
+        /* --- 3. КОНТЕНТ --- */
+        .page-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 500;
+            background: white;
+            visibility: hidden;
+            will-change: transform;
+        }
+
+        .page-content { padding: 3rem 1.2rem; }
+        .card { background: #f5f5f5; padding: 1.5rem; border-radius: 20px; margin-bottom: 1.5rem; border: 1px solid #eee; }
+        .label { font-size: 0.65rem; color: #999; font-weight: 800; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .value { font-size: 1.4rem; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <div class="hero">
+        <h1>The Future of Science</h1>
+        <p>Scroll down to enter</p>
+    </div>
+
+    <div class="sticky-zone">
+        <div id="menu">
+            <div class="fab-icon">☰</div>
+            <div class="menu-content">
+                <div>
+                    <div style="font-weight: 700; opacity: 0.8; font-size: 0.75rem;">science action</div>
+                    <div class="menu-title">Science for people who give a shit</div>
+                    <div style="margin-top: 1rem;">
+                        <span class="pill">explore</span>
+                        <span class="pill active">action tool</span>
+                        <span class="pill">profile</span>
+                    </div>
+                </div>
+                <div class="close-btn" id="btnBack">←</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-wrapper" id="pageWrapper">
+        <main class="page-content">
+            <h2 style="font-size: 1.8rem; font-weight: 900; margin-bottom: 1.5rem;">Tell us what you want to</h2>
+            <div class="card">
+                <div class="label">I want to</div>
+                <div class="value">be heard</div>
+            </div>
+            <div class="card">
+                <div class="label">Choose the topic</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                    <span style="background: white; padding: 12px 18px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #ddd; font-weight: 600;">data ethics</span>
+                    <span style="background: white; padding: 12px 18px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #ddd; font-weight: 600;">climate policy</span>
+                </div>
+            </div>
+            <h2 style="font-size: 1.8rem; font-weight: 900; margin-top: 3rem;">Latest Insights</h2>
+            <div style="width:100%; height:250px; background:#f4f4f4; border-radius:25px; margin-top: 15px;"></div>
+        </main>
+    </div>
+
+    <script>
+        const menu = document.getElementById('menu');
+        const pageWrapper = document.getElementById('pageWrapper');
+        const btnBack = document.getElementById('btnBack');
+
+        const VH = window.innerHeight;
+
+        // Строгие пороги скролла
+        const START_SHRINK = VH + 300; // Блок "стоит" на весь экран 300px после того, как Hero ушел
+        const END_SHRINK = START_SHRINK + 400; // 400px длится сама анимация уменьшения
+        const BUFFER = 33; // Буфер в 3 раза меньше 100
+        const CONTENT_SCROLL_START = END_SHRINK + BUFFER;
+
+        window.addEventListener('scroll', () => {
+            const scroll = window.scrollY;
+
+            // Если открыто вручную — не ломаем логику скролла
+            if (menu.classList.contains('is-expanded')) return;
+
+            // 1. Управление трансформацией в кнопку
+            // Мы активируем FAB только когда прошли "зону ожидания" (START_SHRINK)
+            if (scroll > START_SHRINK) {
+                menu.classList.add('is-fab');
+                pageWrapper.style.visibility = 'visible'; // Показываем контент, когда блок начал сжиматься
+            } else {
+                menu.classList.remove('is-fab');
+                pageWrapper.style.visibility = 'hidden';
+            }
+
+            // 2. Управление скроллом контента
+            if (scroll > CONTENT_SCROLL_START) {
+                const moveAmount = scroll - CONTENT_SCROLL_START;
+                pageWrapper.style.transform = `translateY(-${moveAmount}px)`;
+            } else {
+                pageWrapper.style.transform = `translateY(0px)`;
+            }
+        });
+
+        // Клик по FAB
+        menu.addEventListener('click', () => {
+            if (menu.classList.contains('is-fab')) {
+                menu.classList.add('is-expanded');
+                menu.classList.remove('is-fab');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+
+        // Клик по стрелке назад
+        btnBack.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.classList.remove('is-expanded');
+            document.body.style.overflow = '';
+            // Возвращаем в состояние кнопки, если мы все еще глубоко в скролле
+            if (window.scrollY > START_SHRINK) {
+                menu.classList.add('is-fab');
+            }
+        });
+    </script>
+</body>
+</html>
