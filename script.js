@@ -13,30 +13,39 @@ const menu = document.getElementById('menu');
 const hero = document.getElementById('hero');
 const btnBack = document.getElementById('btnBack');
 
-// Пауза (в px) для плавного перехода. Должна совпадать или коррелировать с --pause в CSS
-const pauseAmount = 400;
+// Задержка и дистанция трансформации должны соответствовать CSS переменным (--sticky-delay и --transform-dist)
+const stickyDelay = 400; // px
+const transformDist = 500; // px
 
 lenis.on('scroll', (e) => {
     // Если меню открыто на весь экран по клику - не отслеживать скролл
     if (menu.classList.contains('is-expanded')) return;
 
-    // Сворачивание начинается только после прокрутки первого экрана (hero)
     const thresholdStart = hero.offsetHeight;
 
-    let progress = 0;
+    let totalScrollP = 0;
+    let progress = 0; // Трансформация самого меню
+
     if (e.scroll > thresholdStart) {
-        progress = (e.scroll - thresholdStart) / pauseAmount;
-        if (progress > 1) progress = 1;
+        let scrolled = e.scroll - thresholdStart;
+
+        // 1. Отвечает за удержание белого контента на месте (все время stickyDelay + transformDist)
+        totalScrollP = Math.min(scrolled / (stickyDelay + transformDist), 1);
+
+        // 2. Трансформация меню начинается только ПОСЛЕ преодоления stickyDelay
+        if (scrolled > stickyDelay) {
+            progress = Math.min((scrolled - stickyDelay) / transformDist, 1);
+        }
     }
 
-    // 1. Линейный прогресс для фиксации контента (transform: translateY)
-    document.documentElement.style.setProperty('--scroll-p', progress);
+    // Линейный прогресс для фиксации контента (transform: translateY)
+    document.documentElement.style.setProperty('--total-scroll-p', totalScrollP);
 
-    // 2. Быстрая кубическая кривая (быстро до 75%, потом до 90% и 100%) для размеров и движения
+    // Быстрая кубическая кривая (быстро до 75%, потом до 90% и 100%) для размеров и движения
     let menuP = 1 - Math.pow(1 - progress, 5);
     document.documentElement.style.setProperty('--menu-p', menuP);
 
-    // 3. Сверхбыстрая кривая (0 -> 1 за первые 5% скролла) для формирования квадрата и круга
+    // Сверхбыстрая кривая (0 -> 1 за первые 5% скролла трансформации) для формирования квадрата и круга
     let roundP = Math.min(progress * 20, 1);
     document.documentElement.style.setProperty('--round-p', roundP);
 
