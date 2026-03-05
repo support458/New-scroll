@@ -1,0 +1,249 @@
+:root {
+    --bezier: cubic-bezier(0.2, 1, 0.3, 1);
+
+    /* Добавляем задержку залипания перед началом трансформации (в пикселях скролла) */
+    --sticky-delay: 400px;
+    --transform-dist: 500px;
+    --total-pause: calc(var(--sticky-delay) + var(--transform-dist));
+
+    --total-scroll-p: 0;
+    --menu-p: 0;
+    --round-p: 0;
+}
+
+html {
+    font-size: 14pt;
+}
+
+html.lenis,
+html.lenis body {
+    height: auto;
+}
+
+.lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+    overflow: hidden;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: #fff;
+}
+
+.hero {
+    width: 100%;
+    height: 100dvh;
+    background: #1a1a1a url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2000') center/cover;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    padding: 2rem;
+    position: relative;
+    z-index: 10;
+}
+
+.hero h1 {
+    font-size: 2.8rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+}
+
+.overlap-wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding-bottom: var(--total-pause);
+    /* Общее время удержания контента */
+}
+
+.page-content,
+.menu-layer {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.page-content {
+    background: white;
+    padding: 3rem 1.2rem 120px 1.2rem;
+    z-index: 5;
+    min-height: 100dvh;
+    /* Удерживаем контент на месте (эффект sticky), сдвигая его вниз ровно на скролл */
+    transform: translateY(calc(var(--total-scroll-p) * var(--total-pause)));
+}
+
+.menu-layer {
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Base menu styling, linked to --scroll-p */
+.menu {
+    position: sticky;
+    top: 0;
+
+    --fab-w: 64px;
+    --fab-h: 64px;
+    --fab-x: 20px;
+    --fab-y: calc(100dvh - 94px);
+
+    --current-h: calc(100dvh - var(--menu-p) * (100dvh - var(--fab-h)));
+    height: var(--current-h);
+
+    /* Ширина быстро приравнивается к высоте (--round-p достигает 1 за 5% скролла) */
+    width: calc(100% * (1 - var(--round-p)) + var(--current-h) * var(--round-p));
+
+    /* Закругление аналогично достигает 50% */
+    border-radius: calc(var(--round-p) * 50%);
+
+    /* Движение к FAB позиции по быстрой кривой --menu-p */
+    transform: translate(calc(var(--menu-p) * var(--fab-x)), calc(var(--menu-p) * var(--fab-y)));
+
+    /* Градиент от #0F0054 к #120746 по диагонали */
+    background: linear-gradient(135deg, #0F0054, #120746);
+    color: white;
+    overflow: hidden;
+    pointer-events: none;
+    /* Пропускаем скролл/клики к Lenis, пока не станем FAB */
+
+    transform-origin: top left;
+    will-change: width, height, border-radius, transform;
+}
+
+/* Включаем транзишен только при открытии кликом, чтобы связка со скроллом работала мгновенно */
+.menu.has-transition {
+    transition: width 0.4s var(--bezier), height 0.4s var(--bezier), transform 0.4s var(--bezier), border-radius 0.4s var(--bezier);
+}
+
+.menu-inner {
+    width: 100vw;
+    height: 100dvh;
+    padding: 2.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    /* Исчезает быстрее */
+    opacity: calc(1 - var(--menu-p) * 2);
+}
+
+/* FAB button states */
+.menu.is-fab {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.menu.is-fab .menu-inner {
+    pointer-events: none;
+}
+
+.menu.is-expanded {
+    --total-scroll-p: 0 !important;
+    --menu-p: 0 !important;
+    --round-p: 0 !important;
+    position: fixed;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    transform: translate(0, 0) !important;
+    border-radius: 0 !important;
+    z-index: 2000;
+    pointer-events: auto !important;
+}
+
+.fab-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    background: none;
+    border: none;
+    color: white;
+
+    /* Появляется только под конец трансформации */
+    opacity: calc((var(--scroll-p) - 0.5) * 2);
+    pointer-events: none;
+}
+
+.menu.is-fab .fab-icon {
+    pointer-events: auto;
+}
+
+.menu-title {
+    font-size: 2.4rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 1rem 0;
+}
+
+.pill {
+    display: inline-block;
+    padding: 0.6rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.2);
+    margin-right: 5px;
+    margin-top: 10px;
+}
+
+.pill.active {
+    background: white;
+    color: #120746;
+}
+
+.close-btn {
+    width: 56px;
+    height: 56px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    cursor: pointer;
+    visibility: hidden;
+    background: transparent;
+    color: white;
+    margin-bottom: env(safe-area-inset-bottom);
+}
+
+.menu.is-expanded .close-btn {
+    visibility: visible;
+}
+
+.card {
+    background: #f5f5f5;
+    padding: 1.5rem;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #eee;
+}
+
+.label {
+    font-size: 0.65rem;
+    color: #999;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.value {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
