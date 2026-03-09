@@ -1,67 +1,784 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Science Action - Perfect Pause</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Мои задачи</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-bg: #e8f0fe;
+            --text-main: #202124;
+            --text-sec: #5f6368;
+            --border: #dadce0;
+            --bg: #ffffff;
+            --bg-sec: #f1f3f4;
+            --error: #ea4335;
+            
+            --date-overdue-bg: #fce8e6;
+            --date-overdue-text: #d93025;
+            --date-today-bg: #fef7e0;
+            --date-today-text: #b06000;
+            --date-week-bg: #e6f4ea;
+            --date-week-text: #137333;
+        }
 
-    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 414px;
+            height: 100vh;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 20px 16px;
+            display: flex;
+            align-items: center;
+            background: var(--bg);
+            z-index: 5;
+        }
+        
+        h1 { font-size: 24px; font-weight: 400; color: var(--text-main); }
+
+        #filters-container {
+            padding: 0 16px 12px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        #filters-container::-webkit-scrollbar { display: none; }
+
+        .chip {
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-sec);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .chip.active {
+            background: var(--primary-bg);
+            color: var(--primary);
+            border-color: transparent;
+        }
+
+        #task-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 80px;
+        }
+
+        .task-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--bg-sec);
+            cursor: pointer;
+            background: var(--bg);
+        }
+        .task-item:active { background: var(--bg-sec); }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .task-title {
+            font-size: 16px;
+            color: var(--text-main);
+            font-weight: 400;
+            flex: 1;
+        }
+
+        .unread-badge {
+            background: var(--error);
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+            flex-shrink: 0;
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-sec);
+            flex-wrap: wrap;
+        }
+
+        .base-chip { padding: 4px 8px; border-radius: 4px; font-weight: 500; }
+        .org-chip { background: var(--bg-sec); color: var(--text-sec); }
+        .date-overdue { background: var(--date-overdue-bg); color: var(--date-overdue-text); }
+        .date-today { background: var(--date-today-bg); color: var(--date-today-text); }
+        .date-week { background: var(--date-week-bg); color: var(--date-week-text); }
+        .date-later { background: var(--bg-sec); color: var(--text-sec); }
+
+        .fab {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-size: 28px;
+            border: none;
+            box-shadow: 0 4px 10px rgba(26, 115, 232, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+        .fab:active { background: #1557b0; }
+
+        .slide-view {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.0, 0.0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .slide-view.open { transform: translateX(0); }
+
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-sec);
+            cursor: pointer;
+            margin-right: 16px;
+            padding: 4px;
+        }
+
+        .view-content {
+            padding: 0 24px 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+            color: var(--text-sec);
+            font-size: 14px;
+        }
+        .detail-icon { font-size: 18px; margin-top: 2px; }
+        .detail-text { flex: 1; line-height: 1.5; color: var(--text-main); }
+        
+        .subtasks-container {
+            margin-top: 16px;
+            border-top: 1px solid var(--bg-sec);
+            padding-top: 16px;
+        }
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 15px;
+            color: var(--text-main);
+        }
+        .subtask-item input[type="checkbox"] {
+            width: 18px; height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .comments-section {
+            margin-top: 24px;
+            border-top: 1px solid var(--bg-sec);
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+        .comments-header {
+            font-size: 12px; color: var(--text-sec); margin-bottom: 16px; font-weight: 500; letter-spacing: 0.5px;
+        }
+        .comment-item {
+            padding: 10px 14px; border-radius: 12px; margin-bottom: 12px; font-size: 14px; position: relative; max-width: 90%;
+        }
+        .comment-item:not(.my-comment) {
+            background: var(--bg-sec); border-bottom-left-radius: 4px; margin-right: auto;
+        }
+        .comment-item.my-comment {
+            background: var(--primary-bg); border-bottom-right-radius: 4px; margin-left: auto;
+        }
+        .comment-author {
+            font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text-main);
+        }
+        .comment-item.my-comment .comment-author { display: none; }
+        .comment-text { color: var(--text-main); word-wrap: break-word; line-height: 1.4; }
+        .comment-time { font-size: 10px; color: var(--text-sec); text-align: right; margin-top: 4px; }
+        
+        .comment-input-wrapper { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
+        .comment-input {
+            flex: 1; border: 1px solid var(--border); border-radius: 20px; padding: 10px 16px; outline: none; font-size: 14px; background: var(--bg);
+        }
+        .comment-input:focus { border-color: var(--primary); }
+        .comment-send { background: none; border: none; color: var(--primary); font-weight: 500; font-size: 14px; cursor: pointer; padding: 8px; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 12px; color: var(--text-sec); margin-bottom: 8px; }
+        .form-control { width: 100%; padding: 10px 0; border: none; border-bottom: 1px solid var(--border); font-size: 16px; color: var(--text-main); background: transparent; outline: none; }
+        .form-control:focus { border-bottom-color: var(--primary); }
+        select.form-control { cursor: pointer; }
+        textarea.form-control { resize: vertical; min-height: 60px; }
+        .add-subtask-wrapper { display: flex; gap: 8px; margin-bottom: 12px; }
+        .btn-text { background: none; border: none; color: var(--primary); font-size: 14px; font-weight: 500; cursor: pointer; padding: 8px 0; }
+
+        .bottom-bar {
+            padding: 16px 24px 24px;
+            border-top: 1px solid var(--bg-sec);
+            background: var(--bg);
+        }
+        
+        /* Кнопка долгого нажатия: улучшена защита от выделения текста */
+        .main-btn {
+            width: 100%; background: var(--primary); color: white; border: none;
+            padding: 14px; border-radius: 8px; font-size: 14px; font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            
+            /* Блокировка системного выделения и меню */
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none;   /* Safari */
+            -khtml-user-select: none;    /* Konqueror HTML */
+            -moz-user-select: none;      /* Firefox */
+            -ms-user-select: none;       /* Internet Explorer/Edge */
+            user-select: none;           /* Стандартный синтаксис */
+            touch-action: none;          /* Отключает зум/скролл на элементе */
+        }
+
+        /* Визуальный прогресс-бар поверх кнопки */
+        .main-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 0%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: width 0s;
+            pointer-events: none;
+        }
+
+        /* Анимация заполнения */
+        .main-btn.holding::after {
+            width: 100%;
+            transition: width 1.5s linear;
+        }
+        
+        /* Изменение цвета подложки при удержании */
+        .main-btn.holding { background: #1557b0; }
+
+        .main-btn:disabled {
+            background: var(--border); color: var(--text-sec);
+            cursor: not-allowed; box-shadow: none;
+        }
+    </style>
 </head>
-
 <body>
 
-    <header class="hero" id="hero">
-        <h1>The Future of Science</h1>
-        <p>Scroll down to enter</p>
-    </header>
+    <div id="app">
+        <header>
+            <h1>Мои задачи</h1>
+        </header>
+        <div id="filters-container"></div>
+        <div id="task-list"></div>
+        <button class="fab" onclick="openCreateView()">+</button>
 
-    <div class="overlap-wrapper">
-        <main class="page-content" id="mainContent">
-            <h2 style="font-size: 1.8rem; font-weight: 900; margin-bottom: 1.5rem;">Tell us what you want to</h2>
-            <div class="card">
-                <div class="label">I want to</div>
-                <div class="value">be heard</div>
-            </div>
-            <div class="card">
-                <div class="label">Choose the topic</div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
-                    <span
-                        style="background: white; padding: 12px 18px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #ddd; font-weight: 600;">data
-                        ethics</span>
-                    <span
-                        style="background: white; padding: 12px 18px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #ddd; font-weight: 600;">climate
-                        policy</span>
+        <div id="detail-view" class="slide-view">
+            <header>
+                <button class="back-btn" onclick="closeView('detail-view')">←</button>
+            </header>
+            <div class="view-content" id="detail-scroll-area">
+                <h2 id="detail-title" style="font-size: 22px; margin-bottom: 24px; font-weight: 400;"></h2>
+                <div class="detail-row">
+                    <span class="detail-icon">🏢</span>
+                    <span id="detail-org" class="base-chip org-chip"></span>
                 </div>
-            </div>
-            <h2 style="font-size: 1.8rem; font-weight: 900; margin-top: 3rem;">Latest Insights</h2>
-            <div style="width:100%; height:250px; background:#f4f4f4; border-radius:25px; margin-top: 15px;"></div>
-            <div style="width:100%; height:250px; background:#f4f4f4; border-radius:25px; margin-top: 15px;"></div>
-        </main>
-
-        <div class="menu-layer">
-            <nav id="menu" class="menu">
-                <button class="fab-icon" aria-label="Open menu">☰</button>
-                <div class="menu-inner">
-                    <div>
-                        <div style="font-weight: 700; opacity: 0.8; font-size: 0.75rem;">science action</div>
-                        <div class="menu-title">Science for people who give a shit</div>
-                        <div style="margin-top: 1rem;">
-                            <span class="pill">explore</span>
-                            <span class="pill active">action tool</span>
-                            <span class="pill">profile</span>
-                        </div>
+                <div class="detail-row">
+                    <span class="detail-icon">📅</span>
+                    <span id="detail-date" class="detail-text"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-icon">👤</span>
+                    <div class="detail-text">
+                        Исполнитель: <span id="detail-assignee" style="font-weight: 500;"></span><br>
+                        Наблюдатель: <span id="detail-observer" style="font-weight: 500;"></span>
                     </div>
-                    <button class="close-btn" id="btnBack" aria-label="Close menu">←</button>
                 </div>
-            </nav>
+                <div class="detail-row" id="detail-desc-container">
+                    <span class="detail-icon">📝</span>
+                    <span id="detail-desc" class="detail-text"></span>
+                </div>
+                <div class="subtasks-container" id="detail-subtasks"></div>
+                <div class="comments-section" id="detail-comments-container">
+                    <div class="comments-header">КОММЕНТАРИИ</div>
+                    <div id="detail-comments-list"></div>
+                    <div class="comment-input-wrapper">
+                        <input type="text" id="new-comment-input" class="comment-input" placeholder="Добавить комментарий..." onkeypress="handleCommentEnter(event)">
+                        <button class="comment-send" onclick="addComment()">Отправить</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-bar">
+                <button id="complete-btn" class="main-btn">Удерживайте для выполнения</button>
+            </div>
+        </div>
+
+        <div id="create-view" class="slide-view">
+            <header>
+                <button class="back-btn" onclick="closeView('create-view')">←</button>
+                <h2 style="font-size: 18px; font-weight: 500;">Новая задача</h2>
+            </header>
+            <div class="view-content">
+                <div class="form-group">
+                    <input type="text" id="new-title" class="form-control" placeholder="Название задачи*" required>
+                </div>
+                <div class="form-group">
+                    <label>Организация*</label>
+                    <select id="new-org" class="form-control">
+                        <option value="ООО Альфа">ООО Альфа</option>
+                        <option value="ООО МегаСтрой">ООО МегаСтрой</option>
+                        <option value="ИП Смирнов">ИП Смирнов</option>
+                        <option value="Внутренние">Внутренние</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Срок выполнения*</label>
+                    <input type="date" id="new-date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Исполнитель</label>
+                    <select id="new-assignee" class="form-control">
+                        <option value="">Не назначен</option>
+                        <option value="Иван Петров">Иван Петров</option>
+                        <option value="Анна Смирнова">Анна Смирнова</option>
+                        <option value="Бухгалтерия">Бухгалтерия</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Наблюдатель</label>
+                    <select id="new-observer" class="form-control">
+                        <option value="">Без наблюдателя</option>
+                        <option value="Иван Петров">Иван Петров</option>
+                        <option value="Анна Смирнова">Анна Смирнова</option>
+                        <option value="Руководитель">Руководитель</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <textarea id="new-desc" class="form-control" placeholder="Описание задачи"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Подзадачи</label>
+                    <div id="new-subtasks-list"></div>
+                    <div class="add-subtask-wrapper">
+                        <input type="text" id="temp-subtask" class="form-control" placeholder="Название подзадачи">
+                        <button class="btn-text" onclick="addSubtaskToForm()">Добавить</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-bar">
+                <button class="main-btn" onclick="saveNewTask()" style="background: var(--primary); width: 100%; border: none; padding: 14px; color: white; border-radius: 8px;">Создать задачу</button>
+            </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
-</body>
+    <script>
+        const getOffsetDate = (days) => {
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            return d.toISOString().split('T')[0];
+        };
 
+        const getCurrentTime = () => {
+            const d = new Date();
+            return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+        };
+
+        let tasks = [
+            { 
+                id: 1, title: "Отправить закрывающие документы", org: "ИП Смирнов", dueDate: getOffsetDate(-2), completed: false,
+                assignee: "Бухгалтерия", observer: "Руководитель", description: "Акты выполненных работ за прошлый месяц.", subtasks: [],
+                unreadComments: 2,
+                comments: [
+                    { author: "Руководитель", text: "Документы уже отправили?", time: "10:30", isMine: false },
+                    { author: "Бухгалтерия", text: "Пока нет, ждем подпись от директора.", time: "11:15", isMine: false }
+                ]
+            },
+            { 
+                id: 2, title: "Согласовать макет сайта", org: "ООО МегаСтрой", dueDate: getOffsetDate(-1), completed: false,
+                assignee: "Иван Петров", observer: "", description: "Клиент ждет правки по главной странице.",
+                subtasks: [{ id: 21, title: "Внести правки по цветам", completed: false }],
+                unreadComments: 0,
+                comments: [
+                    { author: "Я", text: "Отправил макет на ревью.", time: "Вчера 16:00", isMine: true }
+                ]
+            },
+            { 
+                id: 3, title: "Подготовить квартальный отчет по продажам", org: "ООО Альфа", dueDate: getOffsetDate(0), completed: false,
+                assignee: "Анна Смирнова", observer: "Руководитель", description: "Собрать данные из CRM, составить сводную таблицу.",
+                subtasks: [
+                    { id: 31, title: "Выгрузить данные", completed: false },
+                    { id: 32, title: "Сделать графики", completed: false }
+                ],
+                unreadComments: 1,
+                comments: [
+                    { author: "Анна Смирнова", text: "Данные выгрузила, приступаю к графикам.", time: "09:45", isMine: false }
+                ]
+            },
+            { 
+                id: 4, title: "Заказать канцтовары", org: "Внутренние", dueDate: getOffsetDate(2), completed: false,
+                assignee: "Иван Петров", observer: "", description: "Закончилась бумага А4 и маркеры для доски.", subtasks: [],
+                unreadComments: 0, comments: []
+            }
+        ];
+
+        let currentFilter = 'Все';
+        let activeTaskId = null;
+        let draftSubtasks = [];
+
+        function formatDate(dateString) {
+            const options = { day: 'numeric', month: 'short' };
+            const d = new Date(dateString);
+            return d.toLocaleDateString('ru-RU', options) + (d.getFullYear() !== new Date().getFullYear() ? ` ${d.getFullYear()}` : '');
+        }
+
+        function closeView(viewId) {
+            document.getElementById(viewId).classList.remove('open');
+            if(viewId === 'detail-view') setTimeout(() => { activeTaskId = null; }, 300);
+        }
+
+        function renderFilters() {
+            const filtersEl = document.getElementById('filters-container');
+            const orgs = ['Все', ...new Set(tasks.map(t => t.org))];
+            filtersEl.innerHTML = '';
+            
+            orgs.forEach(org => {
+                const btn = document.createElement('button');
+                btn.className = `chip ${currentFilter === org ? 'active' : ''}`;
+                btn.innerText = org;
+                btn.onclick = () => { currentFilter = org; renderFilters(); renderTasks(); };
+                filtersEl.appendChild(btn);
+            });
+        }
+
+        function renderTasks() {
+            const taskListEl = document.getElementById('task-list');
+            taskListEl.innerHTML = '';
+            
+            const filteredTasks = tasks
+                .filter(t => !t.completed)
+                .filter(t => currentFilter === 'Все' || t.org === currentFilter)
+                .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+            if (filteredTasks.length === 0) {
+                taskListEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-sec);">Нет активных задач</div>';
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            filteredTasks.forEach(task => {
+                const taskDate = new Date(task.dueDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const diffTime = taskDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let dateClass = 'date-later';
+                if (diffDays < 0) dateClass = 'date-overdue';
+                else if (diffDays === 0) dateClass = 'date-today';
+                else if (diffDays <= 7) dateClass = 'date-week';
+
+                const taskEl = document.createElement('div');
+                taskEl.className = 'task-item';
+                taskEl.onclick = () => openTask(task.id);
+                
+                const subtaskCount = task.subtasks.length;
+                const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                const subtaskInfo = subtaskCount > 0 ? `<span style="display:flex; align-items:center; gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>${completedSubtasks}/${subtaskCount}</span>` : '';
+
+                const badgeHtml = task.unreadComments > 0 ? `<div class="unread-badge">${task.unreadComments}</div>` : '';
+
+                taskEl.innerHTML = `
+                    <div class="task-header">
+                        <div class="task-title">${task.title}</div>
+                        ${badgeHtml}
+                    </div>
+                    <div class="task-meta">
+                        <span class="base-chip org-chip">${task.org}</span>
+                        <span class="base-chip ${dateClass}">${formatDate(task.dueDate)}</span>
+                        ${subtaskInfo}
+                    </div>
+                `;
+                taskListEl.appendChild(taskEl);
+            });
+        }
+
+        function openTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            activeTaskId = id;
+            
+            task.unreadComments = 0;
+            renderTasks(); 
+
+            document.getElementById('detail-title').innerText = task.title;
+            document.getElementById('detail-org').innerText = task.org;
+            document.getElementById('detail-date').innerText = formatDate(task.dueDate);
+            document.getElementById('detail-assignee').innerText = task.assignee || 'Не назначен';
+            document.getElementById('detail-observer').innerText = task.observer || 'Нет';
+            
+            const descEl = document.getElementById('detail-desc');
+            descEl.innerText = task.description || '';
+            document.getElementById('detail-desc-container').style.display = task.description ? 'flex' : 'none';
+
+            renderDetailSubtasks(task);
+            renderComments(task);
+            
+            document.getElementById('detail-view').classList.add('open');
+        }
+
+        function renderDetailSubtasks(task) {
+            const container = document.getElementById('detail-subtasks');
+            container.innerHTML = '';
+            
+            if (task.subtasks.length > 0) {
+                const label = document.createElement('div');
+                label.style.cssText = 'font-size:12px; color:var(--text-sec); margin-bottom:12px;';
+                label.innerText = 'ПОДЗАДАЧИ';
+                container.appendChild(label);
+
+                task.subtasks.forEach((subtask, index) => {
+                    const el = document.createElement('label');
+                    el.className = 'subtask-item';
+                    el.innerHTML = `
+                        <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
+                               onchange="toggleSubtask(${task.id}, ${index}, this.checked)">
+                        <span style="${subtask.completed ? 'text-decoration: line-through; color: var(--text-sec);' : ''}">${subtask.title}</span>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+            checkCompletionRules(task);
+        }
+
+        function toggleSubtask(taskId, subtaskIndex, isChecked) {
+            const task = tasks.find(t => t.id === taskId);
+            task.subtasks[subtaskIndex].completed = isChecked;
+            renderDetailSubtasks(task);
+        }
+
+        function checkCompletionRules(task) {
+            const btn = document.getElementById('complete-btn');
+            const allSubtasksDone = task.subtasks.every(st => st.completed);
+            btn.disabled = !allSubtasksDone;
+            btn.innerText = allSubtasksDone ? 'Удерживайте для выполнения' : 'Выполните все подзадачи';
+        }
+
+        // === ИСПРАВЛЕННАЯ ЛОГИКА ДОЛГОГО НАЖАТИЯ ===
+        const completeBtn = document.getElementById('complete-btn');
+        let holdTimer;
+        let isHolding = false;
+
+        function startHold(e) {
+            if (completeBtn.disabled) return;
+            isHolding = true;
+            completeBtn.classList.add('holding');
+            
+            holdTimer = setTimeout(() => {
+                if (isHolding) completeTask();
+            }, 1500);
+        }
+
+        function cancelHold() {
+            if (!isHolding) return;
+            isHolding = false;
+            completeBtn.classList.remove('holding');
+            clearTimeout(holdTimer);
+        }
+
+        function completeTask() {
+            isHolding = false;
+            completeBtn.classList.remove('holding');
+            const task = tasks.find(t => t.id === activeTaskId);
+            if (task && !completeBtn.disabled) {
+                task.completed = true;
+                closeView('detail-view');
+                setTimeout(() => { renderFilters(); renderTasks(); }, 300);
+            }
+        }
+
+        // События мыши (для ПК)
+        completeBtn.addEventListener('mousedown', startHold);
+        completeBtn.addEventListener('mouseup', cancelHold);
+        completeBtn.addEventListener('mouseleave', cancelHold);
+
+        // События касания (для мобильных). e.preventDefault() на старте касания гарантированно 
+        // отключает обычный клик и системные функции вроде лупы выделения.
+        completeBtn.addEventListener('touchstart', (e) => {
+            if (!completeBtn.disabled) {
+                e.preventDefault(); // Глушим системные меню и клики
+                startHold(e);
+            }
+        }, {passive: false});
+        
+        completeBtn.addEventListener('touchend', cancelHold);
+        completeBtn.addEventListener('touchcancel', cancelHold);
+
+        // Дополнительная защита от правого клика / меню
+        completeBtn.addEventListener('contextmenu', e => e.preventDefault());
+        // ===========================================
+
+        function renderComments(task) {
+            const listEl = document.getElementById('detail-comments-list');
+            listEl.innerHTML = '';
+            
+            if (task.comments && task.comments.length > 0) {
+                task.comments.forEach(comment => {
+                    const commentEl = document.createElement('div');
+                    commentEl.className = `comment-item ${comment.isMine ? 'my-comment' : ''}`;
+                    commentEl.innerHTML = `
+                        <div class="comment-author">${comment.author}</div>
+                        <div class="comment-text">${comment.text}</div>
+                        <div class="comment-time">${comment.time}</div>
+                    `;
+                    listEl.appendChild(commentEl);
+                });
+            } else {
+                listEl.innerHTML = '<div style="font-size:13px; color:var(--text-sec); margin-bottom:12px;">Нет комментариев</div>';
+            }
+        }
+
+        function addComment() {
+            const input = document.getElementById('new-comment-input');
+            const text = input.value.trim();
+            const task = tasks.find(t => t.id === activeTaskId);
+            
+            if (text && task) {
+                if (!task.comments) task.comments = [];
+                task.comments.push({ author: "Я", text: text, time: getCurrentTime(), isMine: true });
+                
+                input.value = '';
+                renderComments(task);
+                
+                const scrollArea = document.getElementById('detail-scroll-area');
+                scrollArea.scrollTop = scrollArea.scrollHeight;
+            }
+        }
+
+        function handleCommentEnter(e) {
+            if (e.key === 'Enter') addComment();
+        }
+
+        function openCreateView() {
+            document.getElementById('new-title').value = '';
+            document.getElementById('new-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('new-assignee').value = '';
+            document.getElementById('new-observer').value = '';
+            document.getElementById('new-desc').value = '';
+            document.getElementById('temp-subtask').value = '';
+            
+            draftSubtasks = [];
+            renderDraftSubtasks();
+            document.getElementById('create-view').classList.add('open');
+        }
+
+        function addSubtaskToForm() {
+            const input = document.getElementById('temp-subtask');
+            const title = input.value.trim();
+            if (title) {
+                draftSubtasks.push({ id: Date.now(), title: title, completed: false });
+                input.value = '';
+                renderDraftSubtasks();
+            }
+        }
+
+        function renderDraftSubtasks() {
+            const list = document.getElementById('new-subtasks-list');
+            list.innerHTML = '';
+            draftSubtasks.forEach((st, i) => {
+                const el = document.createElement('div');
+                el.className = 'subtask-item';
+                el.style.fontSize = '14px';
+                el.innerHTML = `
+                    <span>• ${st.title}</span>
+                    <button class="btn-text" style="color:var(--error); margin-left:auto;" onclick="removeDraftSubtask(${i})">✕</button>
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        function removeDraftSubtask(index) {
+            draftSubtasks.splice(index, 1);
+            renderDraftSubtasks();
+        }
+
+        function saveNewTask() {
+            const title = document.getElementById('new-title').value.trim();
+            const org = document.getElementById('new-org').value;
+            const dueDate = document.getElementById('new-date').value;
+            
+            if (!title || !dueDate) {
+                alert('Пожалуйста, заполните название и дату');
+                return;
+            }
+
+            const newTask = {
+                id: Date.now(), title: title, org: org, dueDate: dueDate,
+                assignee: document.getElementById('new-assignee').value,
+                observer: document.getElementById('new-observer').value,
+                description: document.getElementById('new-desc').value.trim(),
+                subtasks: [...draftSubtasks], completed: false, unreadComments: 0, comments: []
+            };
+
+            tasks.push(newTask);
+            closeView('create-view');
+            setTimeout(() => { renderFilters(); renderTasks(); }, 300);
+        }
+
+        renderFilters();
+        renderTasks();
+    </script>
+</body>
 </html>
